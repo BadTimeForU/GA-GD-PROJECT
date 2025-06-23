@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: 2386855430519056247}
   - component: {fileID: -8177535204767364893}
   - component: {fileID: 2829394387035779314}
-  - component: {fileID: 7443855091640137916}
+  - component: {fileID: 2984362899249094537}
   m_Layer: 0
   m_Name: Enemy
   m_TagString: Enemy
@@ -110,7 +110,7 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.5
+  m_Radius: 1
   m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
@@ -167,7 +167,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   health: 30
---- !u!54 &7443855091640137916
+--- !u!54 &2984362899249094537
 Rigidbody:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

@@ -2225,7 +2225,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   health: 100
   armor: 50
-  damage: 20
+  damage: 25
   healthText: {fileID: 1960941940}
   armorText: {fileID: 1777088117}
   screen: {fileID: 948467756}
