@@ -1,24 +1,20 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-public class Mouselook : MonoBehaviour
+public class MouseLook : MonoBehaviour
 {
+    [Header("Settings")]
+    [Range(50, 300)] public float mouseSensitivity = 150f;
 
-
-    public float mouseSensitivity = 150f;
-
+    [Header("References")]
     public Transform playerBody;
 
-    float xRotation = 0f;
+    private float xRotation = 0f;
 
-    // Start is called before the first frame update
     void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;
     }
 
-    // Update is called once per frame
     void Update()
     {
         float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity * Time.deltaTime;
@@ -31,4 +27,8 @@ public class Mouselook : MonoBehaviour
         playerBody.Rotate(Vector3.up * mouseX);
     }
 
+    public void SetSensitivity(float sensitivity)
+    {
+        mouseSensitivity = sensitivity;
+    }
 }

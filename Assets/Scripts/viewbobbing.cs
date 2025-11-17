@@ -1,39 +1,84 @@
 using UnityEngine;
-using UnityEngine.UI;
 
-public class RawImageViewBobbing : MonoBehaviour
+public class MinecraftStyleBobbing : MonoBehaviour
 {
-    public float bobbingSpeed = 5f;
-    public float bobbingAmount = 5f;
+    [Header("Bobbing Settings")]
+    public float bobbingSpeed = 14f;
+    public float verticalBobbingAmount = 0.05f;
+    public float horizontalBobbingAmount = 0.03f;
+    [Range(0, 1)] public float smoothingFactor = 0.1f;
 
-    public CharacterController controller;
-    public PlayerMovement movementScript;  // <-- jouw movement script hier
+    [Header("References")]
+    public CharacterController characterController;
+    public PlayerMovement playerMovement;
 
-    private RectTransform rectTransform;
-    private Vector2 originalPosition;
-    private float timer = 0f;
+    private Vector3 originalPosition;
+    private float timer = 0;
+    private Vector3 currentVelocity;
 
     void Start()
     {
-        rectTransform = GetComponent<RectTransform>();
-        originalPosition = rectTransform.anchoredPosition;
+        originalPosition = transform.localPosition;
     }
 
     void Update()
     {
-        // Check movement en grounded status via jouw movement script
-        if (movementScript.isGrounded && controller.velocity.magnitude > 0.1f)
+        if (!playerMovement.isGrounded)
         {
-            timer += Time.deltaTime * bobbingSpeed;
-            float newY = Mathf.Sin(timer) * bobbingAmount;
-            float newX = Mathf.Cos(timer * 0.5f) * (bobbingAmount * 0.5f);
+            ResetPosition();
+            return;
+        }
 
-            rectTransform.anchoredPosition = originalPosition + new Vector2(newX, newY);
+        float horizontal = Input.GetAxis("Horizontal");
+        float vertical = Input.GetAxis("Vertical");
+        float inputMagnitude = new Vector2(horizontal, vertical).magnitude;
+
+        if (inputMagnitude > 0.1f)
+        {
+            // Bobbing motion using sine wave
+            timer += Time.deltaTime * bobbingSpeed;
+
+            // Vertical movement (up/down)
+            float verticalWave = Mathf.Sin(timer * 2); // Snellere verticale beweging
+            float verticalBobbing = verticalWave * verticalBobbingAmount * inputMagnitude;
+
+            // Horizontal movement (zijwaarts)
+            float horizontalWave = Mathf.Sin(timer); // Langzamere horizontale beweging
+            float horizontalBobbing = horizontalWave * horizontalBobbingAmount * inputMagnitude;
+
+            // Calculate new position with smooth damping
+            Vector3 targetPosition = originalPosition +
+                new Vector3(horizontalBobbing, verticalBobbing, 0);
+
+            transform.localPosition = Vector3.SmoothDamp(
+                transform.localPosition,
+                targetPosition,
+                ref currentVelocity,
+                smoothingFactor);
         }
         else
         {
-            rectTransform.anchoredPosition = originalPosition;
-            timer = 0f;
+            ResetPosition();
         }
+    }
+
+    void ResetPosition()
+    {
+        if (Vector3.Distance(transform.localPosition, originalPosition) < 0.001f)
+        {
+            timer = 0;
+            return;
+        }
+
+        // Smoothly return to default position
+        transform.localPosition = Vector3.SmoothDamp(
+            transform.localPosition,
+            originalPosition,
+            ref currentVelocity,
+            smoothingFactor);
+
+        // Reset timer when not moving
+        if (Vector3.Distance(transform.localPosition, originalPosition) < 0.001f)
+            timer = 0;
     }
 }

@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
+using System.Collections;
 
 public class SimpleGun : MonoBehaviour
 {
@@ -18,6 +19,9 @@ public class SimpleGun : MonoBehaviour
     private int currentFrame = 0;
     private float frameTimer = 0f;
     private bool isPlaying = false;
+
+    public AudioSource audioSource;
+    public AudioClip shootSound;
 
     void Start()
     {
@@ -76,6 +80,11 @@ public class SimpleGun : MonoBehaviour
             isPlaying = true;
         }
 
+        if (audioSource != null && shootSound != null)
+        {
+            StartCoroutine(PlayShootSoundOneSecond());
+        }
+
         RaycastHit hit;
         if (Physics.Raycast(fpsCamera.transform.position, fpsCamera.transform.forward, out hit, range))
         {
@@ -87,5 +96,13 @@ public class SimpleGun : MonoBehaviour
                 target.TakeDamage(damage);
             }
         }
+    }
+
+    private IEnumerator PlayShootSoundOneSecond()
+    {
+        audioSource.clip = shootSound;
+        audioSource.Play();
+        yield return new WaitForSeconds(1f);
+        audioSource.Stop();
     }
 }

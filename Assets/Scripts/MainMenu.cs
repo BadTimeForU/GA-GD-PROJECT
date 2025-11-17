@@ -10,14 +10,12 @@ public class MainMenu : MonoBehaviour
     private float fadeDuration = 1f;
     private string sceneToLoad = "";
 
-    [SerializeField] private Button mainMenuButton;
     [SerializeField] private Button startGameButton;
 
     private void Start()
     {
         
         startGameButton.onClick.AddListener(loadScene);   
-        mainMenuButton.onClick.AddListener(loadMainMenu);
     }
 
     void loadScene()

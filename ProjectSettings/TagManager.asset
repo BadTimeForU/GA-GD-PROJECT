@@ -46,6 +46,9 @@ TagManager:
   - name: New Layer 1
     uniqueID: 687029723
     locked: 0
+  - name: FX
+    uniqueID: 1564586537
+    locked: 0
   m_RenderingLayers:
   - Default
   - Light Layer 1

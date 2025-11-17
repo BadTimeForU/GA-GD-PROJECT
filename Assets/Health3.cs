@@ -1,17 +1,23 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using System.Collections;
 
 public class Health3 : MonoBehaviour
 {
     [SerializeField] private float health = 100f;
-    [SerializeField] private float armor = 50f; // beginwaarde armor
-    [SerializeField] private float damage = 20f; // damage voor health
+    [SerializeField] private float armor = 50f;
+    [SerializeField] private float damage = 20f;
 
     [SerializeField] private Text healthText;
     [SerializeField] private Text armorText;
 
     [SerializeField] private FadeScreen screen;
+
+    [SerializeField] private AudioSource audioSource; // 🔊 Kill sound
+    [SerializeField] private AudioClip killSound;
+
+    private bool hasPlayedKillSound = false; // ✅ Speel het geluid maar 1x af
 
     private void Start()
     {
@@ -27,15 +33,13 @@ public class Health3 : MonoBehaviour
     {
         if (armor > 0)
         {
-            // Eerst armor verminderen met 10 per hit
             armor -= 10f;
-            if (armor < 0) armor = 0; // Geen negatieve armor
+            if (armor < 0) armor = 0;
         }
         else if (health > 0)
         {
-            // Als armor op is, health verminderen met 'damage'
             health -= damage;
-            if (health < 0) health = 0; // Geen negatieve health
+            if (health < 0) health = 0;
         }
 
         UpdateUI();
@@ -46,6 +50,14 @@ public class Health3 : MonoBehaviour
         {
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
+
+            // 🔊 Kill sound afspelen tegelijk met fade, maar maar 1 keer
+            if (!hasPlayedKillSound && audioSource != null && killSound != null)
+            {
+                audioSource.PlayOneShot(killSound);
+                hasPlayedKillSound = true;
+            }
+
             screen.StartCoroutine(screen.FadeAndLoadScene());
         }
     }
@@ -60,7 +72,6 @@ public class Health3 : MonoBehaviour
 
     private void UpdateUI()
     {
-        // Alleen de getallen weergeven, afgerond naar hele getallen
         healthText.text = Mathf.RoundToInt(health).ToString();
         armorText.text = Mathf.RoundToInt(armor).ToString();
     }

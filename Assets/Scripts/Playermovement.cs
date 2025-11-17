@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -20,26 +20,37 @@ public class PlayerMovement : MonoBehaviour
     private Vector3 velocity;
     public bool isGrounded;
 
-    // Dash variables
     public float dashDistance = 8f;
     public float dashCooldown = 3f;
     public float dashDuration = 0.2f;
     private float dashTimer = 0f;
     private bool isDashing = false;
 
-    // Air acceleration (bunny hop / air strafing)
     public float airAccelerationRate = 0.2f;
     public float airStrafeAccelerationRate = 0.3f;
     public float airForwardAccelerationRate = 0.2f;
-    public float airComboAcceleration = 0.5f;  // Extra boost when strafing + moving forward
+    public float airComboAcceleration = 0.5f;
     public float airMaxMultiplier = 1.5f;
     public float airDecelerationRate = 0.3f;
     private float currentAirMultiplier = 1f;
 
     public float consecutiveJumpResetTime = 0.2f;
     private float groundTimer = 0f;
-
     private bool isAiming = false;
+
+    // 🔊 Audio
+    public AudioSource audioSource;           // Voor dash/superjump
+    public AudioSource walkAudioSource;       // Voor loopgeluiden
+    public AudioClip dashSound;
+    public AudioClip superJumpSound;
+    public AudioClip walkSound;
+
+    // ✅ Dash Effect
+    public SpriteRenderer dashEffectRenderer;
+    public Sprite[] dashSprites;
+    public float dashFrameRate = 0.05f;
+
+    private Coroutine dashEffectRoutine;
 
     void Update()
     {
@@ -52,20 +63,15 @@ public class PlayerMovement : MonoBehaviour
         {
             groundTimer += Time.deltaTime;
             if (groundTimer > consecutiveJumpResetTime)
-            {
                 currentAirMultiplier = 1f;
-            }
+
             if (velocity.y < 0)
-            {
                 velocity.y = -2f;
-            }
         }
         else
         {
             groundTimer = 0f;
-
-            float x = 0;
-            float z = 0;
+            float x = 0, z = 0;
             if (Input.GetKey("a")) x += -1;
             if (Input.GetKey("d")) x += 1;
             if (Input.GetKey("w")) z += 1;
@@ -75,19 +81,9 @@ public class PlayerMovement : MonoBehaviour
             if (move.magnitude > 0.1f)
             {
                 float acceleration = airAccelerationRate;
-
-                if (Mathf.Abs(x) > 0.1f) // Strafing
-                {
-                    acceleration += airStrafeAccelerationRate;
-                }
-                if (z > 0.1f) // Moving forward
-                {
-                    acceleration += airForwardAccelerationRate;
-                }
-                if (Mathf.Abs(x) > 0.1f && z > 0.1f) // Forward + Strafe Combo Boost
-                {
-                    acceleration += airComboAcceleration;
-                }
+                if (Mathf.Abs(x) > 0.1f) acceleration += airStrafeAccelerationRate;
+                if (z > 0.1f) acceleration += airForwardAccelerationRate;
+                if (Mathf.Abs(x) > 0.1f && z > 0.1f) acceleration += airComboAcceleration;
 
                 currentAirMultiplier = Mathf.Min(currentAirMultiplier + acceleration * Time.deltaTime, airMaxMultiplier);
             }
@@ -97,8 +93,7 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
-        float inputX = 0;
-        float inputZ = 0;
+        float inputX = 0, inputZ = 0;
         if (Input.GetKey("a")) inputX += -1;
         if (Input.GetKey("d")) inputX += 1;
         if (Input.GetKey("w")) inputZ += 1;
@@ -109,23 +104,33 @@ public class PlayerMovement : MonoBehaviour
         if (!isDashing)
         {
             float currentSpeed = speed;
-            if (isAiming)
-            {
-                currentSpeed *= 0.5f;
-            }
-            if (!isGrounded)
-            {
-                currentSpeed *= currentAirMultiplier;
-            }
+            if (isAiming) currentSpeed *= 0.5f;
+            if (!isGrounded) currentSpeed *= currentAirMultiplier;
 
             Vector3 horizontalVelocity = movementInput * currentSpeed;
             float speedCap = isGrounded ? speed : speed * airMaxMultiplier;
             if (horizontalVelocity.magnitude > speedCap)
-            {
                 horizontalVelocity = horizontalVelocity.normalized * speedCap;
-            }
 
             controller.Move(horizontalVelocity * Time.deltaTime);
+
+            // 🔊 Walking sound (via aparte walkAudioSource)
+            if (isGrounded && movementInput.magnitude > 0.1f && walkAudioSource && walkSound)
+            {
+                if (!walkAudioSource.isPlaying)
+                {
+                    walkAudioSource.clip = walkSound;
+                    walkAudioSource.loop = true;
+                    walkAudioSource.Play();
+                }
+            }
+            else
+            {
+                if (walkAudioSource && walkAudioSource.isPlaying)
+                {
+                    walkAudioSource.Stop();
+                }
+            }
         }
 
         if (Input.GetKeyDown(KeyCode.LeftShift) && dashTimer <= 0 && movementInput.magnitude > 0 && !isDashing)
@@ -135,14 +140,19 @@ public class PlayerMovement : MonoBehaviour
         }
 
         if (Input.GetButton("Jump") && isGrounded && !isAiming)
-        {
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
-        }
 
         if (Input.GetKeyDown(KeyCode.Q) && isGrounded && superJumpTimer <= 0)
         {
             velocity.y = Mathf.Sqrt(superJumpHeight * -2f * gravity);
             superJumpTimer = superJumpCooldown;
+
+            if (audioSource && superJumpSound)
+            {
+                audioSource.pitch = 1.5f;
+                audioSource.PlayOneShot(superJumpSound);
+                audioSource.pitch = 1f;
+            }
         }
 
         velocity.y += gravity * Time.deltaTime;
@@ -152,6 +162,20 @@ public class PlayerMovement : MonoBehaviour
     IEnumerator SmoothDash(Vector3 direction)
     {
         isDashing = true;
+
+        if (audioSource && dashSound)
+        {
+            audioSource.pitch = 1.5f;
+            audioSource.PlayOneShot(dashSound);
+            audioSource.pitch = 1f;
+        }
+
+        if (dashEffectRenderer && dashSprites.Length > 0)
+        {
+            if (dashEffectRoutine != null) StopCoroutine(dashEffectRoutine);
+            dashEffectRoutine = StartCoroutine(PlayDashEffect());
+        }
+
         float elapsedTime = 0f;
         while (elapsedTime < dashDuration)
         {
@@ -159,7 +183,21 @@ public class PlayerMovement : MonoBehaviour
             elapsedTime += Time.deltaTime;
             yield return null;
         }
+
         isDashing = false;
+    }
+
+    IEnumerator PlayDashEffect()
+    {
+        dashEffectRenderer.enabled = true;
+
+        foreach (Sprite frame in dashSprites)
+        {
+            dashEffectRenderer.sprite = frame;
+            yield return new WaitForSeconds(dashFrameRate);
+        }
+
+        dashEffectRenderer.enabled = false;
     }
 
     public void SetAiming(bool aiming)
